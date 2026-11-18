@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Build log2ram-guard_<version>_all.deb
-#   ./build-deb.sh            version from latest git tag (v1.2.3) or 0.0.0+<sha>
+#   ./build-deb.sh            version from the VERSION file
 #   VERSION=1.0.0 ./build-deb.sh
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")"
 
-VERSION="${VERSION:-$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')}"
+VERSION="${VERSION:-$(tr -d '[:space:]' < VERSION 2>/dev/null)}"
 VERSION="${VERSION:-0.0.0+$(git rev-parse --short HEAD 2>/dev/null || echo local)}"
 PKG=log2ram-guard
 OUT=dist

@@ -21,11 +21,11 @@ Remove: `sudo apt purge log2ram-guard`
 ### Build the package yourself
 
 ```bash
-./build-deb.sh                  # version from latest v* tag
+./build-deb.sh                  # version from VERSION file
 VERSION=1.0.0 ./build-deb.sh    # explicit version -> dist/log2ram-guard_1.0.0_all.deb
 ```
 
-Pushing a tag `v1.2.3` makes GitHub Actions build the package and attach it to a release.
+Releasing: bump `VERSION` and push to `main`. GitHub Actions builds the package and, if release `v<VERSION>` doesn't exist yet, creates the tag and release with the `.deb` attached. Pushing a `v*` tag works too.
 
 ### Without packaging
 
