@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep log2ram /var/log below its usage threshold
+Documentation=https://github.com/jwklijnsma/log2ram
+After=log2ram.service
+ConditionPathIsMountPoint=/var/log
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/log2ram-guard
+Nice=10
+IOSchedulingClass=idle

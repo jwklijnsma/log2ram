@@ -6,6 +6,9 @@
 #   log2ram-guard.sh --install   install to /usr/local/sbin, add systemd timer (every 5 min)
 #                                and a journald size cap derived from the log2ram size
 #   log2ram-guard.sh --uninstall remove timer, service, journald drop-in and script
+#   log2ram-guard.sh --journald  (re)write only the journald size cap
+#
+# Settings are read from /etc/default/log2ram-guard if it exists.
 #
 # Cleanup order (stops as soon as usage <= threshold):
 #   1. vacuum the systemd journal
@@ -15,6 +18,10 @@
 #   5. last resort: empty the largest logs completely
 
 set -uo pipefail
+
+CONF=/etc/default/log2ram-guard
+# shellcheck source=/dev/null
+[[ -r $CONF ]] && . "$CONF"
 
 THRESHOLD="${THRESHOLD:-65}"           # max % usage of /var/log
 MOUNT="${MOUNT:-/var/log}"
@@ -119,22 +126,36 @@ cleanup() {
     fi
 }
 
-install_guard() {
+write_journald() {   # journald cap derived from the log2ram tmpfs size
     need_root
-    install -m 0755 "$(readlink -f "$0")" "$BIN"
-
-    local cap=$(( $(size_mb) * JOURNAL_PCT / 100 ))
+    local size cap
+    if mountpoint -q "$MOUNT"; then
+        size=$(size_mb)
+    else
+        # log2ram not mounted (yet): fall back to SIZE from log2ram.conf, else 128M
+        size=$(sed -n 's/^SIZE=\([0-9]*\)M.*/\1/p' /etc/log2ram.conf 2>/dev/null | tail -1)
+        size=${size:-128}
+    fi
+    cap=$(( size * JOURNAL_PCT / 100 ))
     (( cap < 32 )) && cap=32
     mkdir -p "$(dirname "$JDROP")"
     cat > "$JDROP" <<EOF
-# managed by log2ram-guard: keep journal well below the log2ram tmpfs size
+# managed by log2ram-guard: keep journal well below the log2ram tmpfs size (${size}M)
 [Journal]
 SystemMaxUse=${cap}M
-SystemKeepFree=$(( $(size_mb) * (100 - THRESHOLD) / 100 ))M
+SystemKeepFree=$(( size * (100 - THRESHOLD) / 100 ))M
 SystemMaxFileSize=$(( cap / 4 > 8 ? cap / 4 : 8 ))M
 RuntimeMaxUse=${cap}M
 EOF
-    systemctl restart systemd-journald
+    systemctl restart systemd-journald 2>/dev/null || true
+    log "journald capped at ${cap}M (log2ram ${size}M)"
+}
+
+install_guard() {
+    need_root
+    install -m 0755 "$(readlink -f "$0")" "$BIN"
+    write_journald
+    local cap=$(( $(size_mb) * JOURNAL_PCT / 100 ))
 
     cat > "$UNIT.service" <<EOF
 [Unit]
@@ -180,8 +201,9 @@ uninstall_guard() {
 case "${1:-}" in
     --install)   install_guard ;;
     --uninstall) uninstall_guard ;;
+    --journald)  write_journald ;;
     --dry-run)   DRY=1; SYNC_AFTER=0; cleanup ;;
     ""|--run)    cleanup ;;
-    -h|--help)   sed -n '2,19p' "$0" ;;
+    -h|--help)   sed -n '2,/^$/p' "$0" ;;
     *)           echo "unknown option: $1 (try --help)" >&2; exit 2 ;;
 esac

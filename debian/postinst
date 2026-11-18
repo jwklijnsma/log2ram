@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+case "$1" in
+    configure)
+        /usr/sbin/log2ram-guard --journald || true
+        if [ -d /run/systemd/system ]; then
+            systemctl daemon-reload || true
+            systemctl enable --now log2ram-guard.timer || true
+            systemctl start log2ram-guard.service || true
+        fi
+        ;;
+esac
+exit 0

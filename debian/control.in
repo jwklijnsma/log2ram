@@ -1,0 +1,14 @@
+Package: log2ram-guard
+Version: @VERSION@
+Section: admin
+Priority: optional
+Architecture: all
+Maintainer: Jan Wiebe Klijnsma <jwklijnsma@users.noreply.github.com>
+Depends: bash, coreutils, findutils, util-linux, systemd
+Recommends: log2ram
+Homepage: https://github.com/jwklijnsma/log2ram
+Description: keep the log2ram tmpfs below a maximum usage
+ Systemd timer that keeps /var/log (log2ram) below a usage threshold
+ (default 65%) by vacuuming the journal, removing rotated logs, releasing
+ deleted-but-open files and shrinking the largest logs. Also caps the
+ journald size relative to the log2ram size.

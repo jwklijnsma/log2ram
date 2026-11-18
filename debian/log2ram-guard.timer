@@ -1,0 +1,11 @@
+[Unit]
+Description=Run log2ram-guard every 5 minutes
+Documentation=https://github.com/jwklijnsma/log2ram
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

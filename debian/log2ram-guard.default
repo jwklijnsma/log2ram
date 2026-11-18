@@ -1,0 +1,17 @@
+# /etc/default/log2ram-guard — settings for log2ram-guard
+# After changing JOURNAL_PCT or THRESHOLD run: log2ram-guard --journald
+
+# max % usage of /var/log before cleanup starts
+THRESHOLD=65
+
+# bytes kept per file when shrinking the largest logs
+KEEP_TAIL=2M
+
+# journald cap as % of the log2ram tmpfs size
+JOURNAL_PCT=25
+
+# run 'log2ram write' after a cleanup (1/0)
+SYNC_AFTER=1
+
+# mountpoint to guard
+MOUNT=/var/log

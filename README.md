@@ -4,6 +4,31 @@ Keeps the [log2ram](https://github.com/azlux/log2ram) tmpfs (`/var/log`) below a
 
 ## Install
 
+### Debian package (recommended)
+
+Download the `.deb` from [Releases](https://github.com/jwklijnsma/log2ram/releases) or the latest CI artifact, then:
+
+```bash
+sudo apt install ./log2ram-guard_*_all.deb
+```
+
+This installs `/usr/sbin/log2ram-guard`, enables `log2ram-guard.timer` and writes the journald cap.
+Settings live in `/etc/default/log2ram-guard` (kept on upgrade). After changing `THRESHOLD` or
+`JOURNAL_PCT`, run `sudo log2ram-guard --journald`.
+
+Remove: `sudo apt purge log2ram-guard`
+
+### Build the package yourself
+
+```bash
+./build-deb.sh                  # version from latest v* tag
+VERSION=1.0.0 ./build-deb.sh    # explicit version -> dist/log2ram-guard_1.0.0_all.deb
+```
+
+Pushing a tag `v1.2.3` makes GitHub Actions build the package and attach it to a release.
+
+### Without packaging
+
 ```bash
 git clone https://github.com/jwklijnsma/log2ram
 cd log2ram
