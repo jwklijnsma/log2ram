@@ -47,7 +47,10 @@ jobs:
         id: build
         env:
           VERSION: ${{ steps.ver.outputs.version }}
-        run: echo "deb=$(./build-deb.sh)" >> "$GITHUB_OUTPUT"
+        run: |
+          deb="$(./build-deb.sh)"
+          test -f "$deb"
+          echo "deb=$deb" >> "$GITHUB_OUTPUT"
 
       - name: Inspect package
         run: |
