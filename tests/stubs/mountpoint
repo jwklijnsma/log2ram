@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+[[ ${FAKE_MOUNTED:-1} == 1 ]]
