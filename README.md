@@ -79,3 +79,17 @@ journalctl -t log2ram-guard
 ```
 
 If the same file gets shrunk every run, that service is logging too much. Fix it at the source.
+
+## Tests
+
+```bash
+sudo bats tests        # apt install bats  (or: npm i -g bats)
+```
+
+The suite runs `log2ram-guard.sh` against a temp dir that plays the log2ram
+tmpfs: `df` reports real usage of that dir (including deleted-but-open files),
+and `mountpoint`, `journalctl`, `systemctl` and `log2ram` are stubbed, so it
+changes nothing on the machine. Every path the script writes to can be pointed
+elsewhere with `LOG2RAM_GUARD_CONF`, `LOG2RAM_GUARD_BIN`, `LOG2RAM_GUARD_UNIT`,
+`LOG2RAM_GUARD_JDROP`, `LOG2RAM_CONF` and `LOG2RAM_GUARD_TMPDIR` (the defaults
+are the real system paths).

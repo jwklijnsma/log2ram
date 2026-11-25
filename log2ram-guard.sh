@@ -19,7 +19,7 @@
 
 set -uo pipefail
 
-CONF=/etc/default/log2ram-guard
+CONF="${LOG2RAM_GUARD_CONF:-/etc/default/log2ram-guard}"
 # shellcheck source=/dev/null
 [[ -r $CONF ]] && . "$CONF"
 
@@ -31,9 +31,12 @@ INTERVAL="${INTERVAL:-5min}"           # timer interval (--install)
 SYNC_AFTER="${SYNC_AFTER:-1}"          # run 'log2ram write' after a cleanup
 DRY=0
 
-BIN=/usr/local/sbin/log2ram-guard
-UNIT=/etc/systemd/system/log2ram-guard
-JDROP=/etc/systemd/journald.conf.d/50-log2ram-guard.conf
+# Paths can be overridden from the environment (the test suite points them at a temp dir).
+BIN="${LOG2RAM_GUARD_BIN:-/usr/local/sbin/log2ram-guard}"
+UNIT="${LOG2RAM_GUARD_UNIT:-/etc/systemd/system/log2ram-guard}"
+JDROP="${LOG2RAM_GUARD_JDROP:-/etc/systemd/journald.conf.d/50-log2ram-guard.conf}"
+L2R_CONF="${LOG2RAM_CONF:-/etc/log2ram.conf}"
+TMPDIR_GUARD="${LOG2RAM_GUARD_TMPDIR:-/run}"
 
 log() { echo "log2ram-guard: $*"; logger -t log2ram-guard -- "$*" 2>/dev/null || true; }
 run() { if (( DRY )); then echo "  [dry-run] $*"; else "$@"; fi; }
@@ -64,7 +67,7 @@ step_rotated() {
     find "$MOUNT" -xdev -type f \( \
         -name '*.gz' -o -name '*.xz' -o -name '*.bz2' -o -name '*.zst' \
         -o -name '*.[0-9]' -o -name '*.[0-9].log' -o -name '*.old' \
-        -o -regex '.*-[0-9]\{8\}\(\.gz\)?$' \) \
+        -o -regextype posix-extended -regex '.*-[0-9]{8}(\.gz)?' \) \
         ! -path "$MOUNT/journal/*" -print0 2>/dev/null |
     while IFS= read -r -d '' f; do run rm -f -- "$f"; done
 }
@@ -86,7 +89,7 @@ shrink_file() {   # keep last $2 bytes, preserve inode so writers keep working
         run truncate -s 0 -- "$f"; return
     fi
     (( DRY )) && { echo "  [dry-run] keep last $keep of $f"; return; }
-    tmp=$(mktemp /run/log2ram-guard.XXXXXX) || return
+    tmp=$(mktemp "$TMPDIR_GUARD/log2ram-guard.XXXXXX") || return
     tail -c "$keep" -- "$f" > "$tmp" 2>/dev/null && cat "$tmp" > "$f"
     rm -f "$tmp"
 }
@@ -133,7 +136,7 @@ write_journald() {   # journald cap derived from the log2ram tmpfs size
         size=$(size_mb)
     else
         # log2ram not mounted (yet): fall back to SIZE from log2ram.conf, else 128M
-        size=$(sed -n 's/^SIZE=\([0-9]*\)M.*/\1/p' /etc/log2ram.conf 2>/dev/null | tail -1)
+        size=$(sed -n 's/^SIZE=\([0-9]*\)M.*/\1/p' "$L2R_CONF" 2>/dev/null | tail -1)
         size=${size:-128}
     fi
     cap=$(( size * JOURNAL_PCT / 100 ))

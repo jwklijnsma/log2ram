@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Fake df for the tests: the "tmpfs" is the directory given last, with a size of
+# $FAKE_SIZE_MB. Usage is what its files really take up, plus files that were
+# deleted but are still held open (as a real tmpfs counts them), so a cleanup
+# really lowers it.
+dir=${*: -1}
+size_mb=${FAKE_SIZE_MB:-10}
+used_kb=$(du -sk "$dir" | cut -f1)
+for fd in /proc/[0-9]*/fd/*; do
+    tgt=$(readlink "$fd" 2>/dev/null) || continue
+    [[ $tgt == "$dir/"*' (deleted)' ]] || continue
+    used_kb=$(( used_kb + $(stat -L -c %b "$fd" 2>/dev/null || echo 0) / 2 ))
+done
+case "$*" in
+  *pcent*) echo "Use%"; echo " $(( (used_kb * 100 + size_mb * 1024 - 1) / (size_mb * 1024) ))%" ;;
+  *size*)  echo "1M-blocks"; echo " ${size_mb}M" ;;
+  *)       echo "unsupported df call: $*" >&2; exit 1 ;;
+esac

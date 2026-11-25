@@ -1,0 +1,21 @@
+name: tests
+
+# bats suite for log2ram-guard.sh. It runs the script against a temp dir with
+# df/mountpoint/journalctl/systemctl stubbed, so it touches nothing on the
+# runner; sudo because the script refuses to run as a normal user.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -q && sudo apt-get install -y -q bats
+      - run: sudo bats tests
